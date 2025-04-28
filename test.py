@@ -2,7 +2,7 @@
 
 from unittest import TestCase
 import datetime as dt
-from .hebrewdate import HebrewDate, HebrewYear, HebrewCalendar, HTMLHebrewCalendar
+from hebrewdate import HebrewDate, HebrewYear, HebrewCalendar, HTMLHebrewCalendar
 
 
 class TestHebrewYearAdditional(TestCase):
