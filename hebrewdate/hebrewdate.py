@@ -22,29 +22,70 @@ HEBREW_DAYS = (
 WEEKDAYS = ("שבת", "ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי")
 
 
+class IllegalMonthError(ValueError, IndexError):
+    def __init__(self, month):
+        self.month = month
+    def __str__(self):
+        return "bad month value %r" % self.month
+
+
+class IllegalWeekdayError(ValueError):
+    def __init__(self, weekday):
+        self.weekday = weekday
+    def __str__(self):
+        return "bad weekday number %r; must be 1 (Sunday) to 7 (Shabbat)" % self.weekday
+
+
+def _validate_month(month: int | str, year: int) -> str:
+    year = HebrewYear(year)
+    if isinstance(month, int):
+        if month < 1 or month > (13 if year.is_leap else 12):
+            raise IllegalMonthError(month)
+        month = year.months[month - 1]
+    elif isinstance(month, str):
+        if month not in year.months:
+            raise IllegalMonthError(month)
+    else:
+        raise TypeError("Invalid month type")
+    return month
+
+def _validate_day(day: int | str, month: int, year: int) -> str:
+    year = HebrewYear(year)
+    if isinstance(day, int):
+        if day < 1 or day > year.days[month - 1]:
+            raise ValueError(f"Invalid day for {year.days[month - 1]}-day month")
+        day = HEBREW_DAYS[day - 1]
+    elif isinstance(day, str):
+        if day not in HEBREW_DAYS:
+            raise ValueError("Invalid day")
+    else:
+        raise TypeError("Invalid day type")
+    return day
+
+
 class HebrewDate:
     """
     Represents a Hebrew date, supporting conversions, arithmetic.
 
     Attributes:
     -----------
-    **year** : ``HebrewYear``
+    **year**: ``HebrewYear``
         ``HebrewYear`` object representing the year of the Hebrew date.
-    **year_numeric** : ``int``
+    **year_numeric**: ``int``
         Numeric value of the Hebrew year.
-    **month** : ``str``
+    **month**: ``str``
         Name of the Hebrew month.
-    **month_numeric** : ``int``
+    **month_numeric**: ``int``
         Numeric value of the Hebrew month (1-12/13).
-    **day** : ``str``
+    **day**: ``str``
         Day of the Hebrew date as a Hebrew string representation.
-    **day_numeric** : ``int``
+    **day_numeric**: ``int``
         Numeric day of the month (1-30).
-    **weekday** : ``str``
+    **weekday**: ``str``
         Hebrew name of the weekday.
-    **weekday_numeric** : ``int``
-        Numeric representation of the Hebrew weekday (0-6, where 0 is שבת).
-    **genesis** : ``int``
+    **weekday_numeric**: ``int``
+        Numeric representation of the Hebrew weekday (1-7, where 1 is Sunday).
+    **genesis**: ``int``
         Calculated absolute number of days since the Hebrew epoch.
     """
 
@@ -52,18 +93,18 @@ class HebrewDate:
         """
         Parameters:
         -----------
-        **day** : ``int`` or ``str``, optional (default: 1)
+        **day**: ``int`` or ``str``, optional (default: 1)
             The day of the Hebrew date, represented either as an integer (1-30) or as a string.
-        **month** : ``int`` or ``str``, optional (default: 1)
+        **month**: ``int`` or ``str``, optional (default: 1)
             The month of the Hebrew date, represented either as an integer (1-12/13) or as a string.
-        **year** : ``int``, optional (default: 5785)
+        **year**: ``int``, optional (default: 5785)
             The year of the Hebrew date, represented as an integer (e.g., 5785).
         """
         self.year = HebrewYear(year)
         self.year_numeric = year
-        self.month = self._validate_month(month)
+        self.month = _validate_month(month, year)
         self.month_numeric, self.month = self.get_month()
-        self.day = self._validate_day(day)
+        self.day = _validate_day(day, self.month_numeric, year)
         self.day_numeric, self.day = self.get_day()
         self.weekday_numeric, self.weekday = self.get_weekday()
         self.genesis = self.year.first_new_moon() // 1080 // 24 + self.days_before() + 1
@@ -107,30 +148,6 @@ class HebrewDate:
             return int(self) - int(other)
         raise TypeError(f"Unsupported operand type(s) for +: 'HebrewDate' and {type(other).__name__}")
 
-    def _validate_month(self, month: int | str) -> str:
-        if isinstance(month, int):
-            if month < 1 or month > (13 if self.year.is_leap else 12):
-                raise ValueError("Invalid month")
-            month = self.year.months[month - 1]
-        elif isinstance(month, str):
-            if month not in self.year.months:
-                raise ValueError("Invalid month")
-        else:
-            raise ValueError("Invalid month type")
-        return month
-
-    def _validate_day(self, day: int | str) -> str:
-        if isinstance(day, int):
-            if day < 1 or day > self.year.days[self.month_numeric - 1]:
-                raise ValueError(f"Invalid day for {self.year.days[self.month_numeric - 1]}-day month")
-            day = HEBREW_DAYS[day - 1]
-        elif isinstance(day, str):
-            if day not in HEBREW_DAYS:
-                raise ValueError("Invalid day")
-        else:
-            raise ValueError("Invalid day type")
-        return day
-
     def get_month(self) -> tuple[int, str]:
         return self.year.months.index(self.month) + 1, self.month
 
@@ -140,7 +157,7 @@ class HebrewDate:
     def get_weekday(self) -> tuple[int, str]:
         weekday = (sum(i for i in self.year.days[:self.month_numeric - 1]) +
                    self.year.first_weekday + self.day_numeric - 1) % 7
-        return weekday, WEEKDAYS[weekday]
+        return (7 if weekday == 0 else weekday), WEEKDAYS[weekday]
 
     def days_before(self) -> int:
         if self.month_numeric == 1:
@@ -190,13 +207,13 @@ class HebrewDate:
 
         Parameters:
         -----------
-        **day** : ``int``, optional
+        **day**: ``int``, optional
             The day of the Gregorian date.
-        **month** : ``int``, optional
+        **month**: ``int``, optional
             The month of the Gregorian date.
-        **year** : ``int``, optional
+        **year**: ``int``, optional
             The year of the Gregorian date.
-        **date** : ``datetime.date``, optional
+        **date**: ``datetime.date``, optional
             A datetime.date object representing the Gregorian date.
 
         Returns:

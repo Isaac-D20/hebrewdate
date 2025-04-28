@@ -2,7 +2,7 @@
 
 from unittest import TestCase
 import datetime as dt
-from hebrewdate import HebrewDate, HebrewYear
+from .hebrewdate import HebrewDate, HebrewYear, HebrewCalendar, HTMLHebrewCalendar
 
 
 class TestHebrewYearAdditional(TestCase):
@@ -199,3 +199,64 @@ class TestHebrewDate(TestCase):
     def test_today_method(self):
         hebrew_date = HebrewDate.today()
         self.assertTrue(isinstance(hebrew_date, HebrewDate))
+
+class TestHebrewCalendar(TestCase):
+
+    def test_itermonthdays_produces_correct_day_numbers(self):
+        calendar = HebrewCalendar(firstweekday=0)
+        year = 5785
+        month = 1  # Assuming the first Hebrew month
+        days = list(calendar.itermonthdays(year, month))
+        self.assertTrue(all(isinstance(day, int) for day in days))
+        self.assertEqual(days.count(0), days[0:(7 - days[0] % 7)].count(0))
+
+    def test_itermonthdays_include_zeros_correctly(self):
+        calendar = HebrewCalendar()
+        year = 5785
+        month = 2
+        days = list(calendar.itermonthdays(year, month))
+        self.assertIn(0, days)  # Ensure zeros are included before and after the month's days
+
+    def test_itermonthdays2gregorian_returns_correct_tuple_format(self):
+        calendar = HebrewCalendar()
+        year = 5785
+        month = 1
+        days = list(calendar.itermonthdays2gregorian(year, month))
+        self.assertTrue(all(len(day_tuple) == 3 for day_tuple in days))
+        self.assertTrue(all(isinstance(day_tuple[0], int) for day_tuple in days))
+        self.assertTrue(all(isinstance(day_tuple[1], int) for day_tuple in days))
+        self.assertTrue(all(isinstance(day_tuple[2], str) or day_tuple[2] == "" for day_tuple in days))
+
+    def test_monthdays2calendar_returns_correct_matrix_size(self):
+        calendar = HebrewCalendar()
+        year = 5785
+        month = 1
+        matrix = calendar.monthdays2calendar(year, month)
+        self.assertTrue(all(len(week) == 7 for week in matrix))
+        self.assertEqual(len(matrix) * 7, len([day for week in matrix for day in week]))
+
+    def test_monthdays2calendar_with_gregorian_flag(self):
+        calendar = HebrewCalendar()
+        year = 5785
+        month = 1
+        matrix_with_gregorian = calendar.monthdays2calendar(year, month, with_gregorian=True)
+        self.assertTrue(all(len(week) == 7 for week in matrix_with_gregorian))
+        self.assertTrue(all(len(day_tuple) == 3 for week in matrix_with_gregorian for day_tuple in week))
+
+class TestHTMLHebrewCalendar(TestCase):
+
+    def test_formatmonth_with_hebrew_year(self):
+        calendar = HTMLHebrewCalendar(firstweekday=0)
+        result = calendar.formatmonth(5785, 1)
+        self.assertIn('<table dir="rtl', result)
+        self.assertIn('תשרי 5785', result)
+
+    def test_formatmonth_with_gregorian_dates(self):
+        calendar = HTMLHebrewCalendar(firstweekday=0)
+        result = calendar.formatmonth(5785, 1, with_gregorian=True)
+        self.assertIn('October-November', result)
+
+    def test_formatday_outside_month(self):
+        calendar = HTMLHebrewCalendar(firstweekday=0)
+        result = calendar.formatday(0, 0)
+        self.assertEqual(result, '<td class="noday">&nbsp;</td>')

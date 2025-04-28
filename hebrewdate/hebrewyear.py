@@ -32,18 +32,18 @@ class HebrewYear:
 
     Attributes:
     -----------
-    **year** : ``int``
+    **year**: ``int``
         Numeric value of the Hebrew year.
-    **is_leap** : ``bool``
+    **is_leap**: ``bool``
         Whether the year is a leap year.
-    **months** : ``list[str]``
+    **months**: ``list[str]``
         A list of month names for the year, adjusted for leap years.
-    **days** : ``list[int]``
+    **days**: ``list[int]``
         Number of days in each month in the year.
-    **month_count** : ``int``
+    **month_count**: ``int``
         Number of months in the year (12 or 13 for leap years).
-    **first_weekday** : ``int``
-        Numeric representation of the first weekday of the year (0-6, where 0 is שבת).
+    **first_weekday**: ``int``
+        Numeric representation of the first weekday of the year (0-6, where 0 is שבת for calculation purposes).
     """
 
     def __init__(self, year: int):
