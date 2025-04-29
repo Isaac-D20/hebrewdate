@@ -17,11 +17,10 @@ It offers four main classes:
 
 Key Features:
 - Conversion between Hebrew and Gregorian dates.
-- Computation of weekdays, month lengths, and leap year statuses for Hebrew dates.
-- Operations for date arithmetic such as addition and subtraction of days, months, and years.
-- Classmethods for obtaining today's Hebrew date or constructing a Hebrew date from a Gregorian date.
-- Handling of historical edge cases and adjustments within the Hebrew calendar system.
-- Calendar iteration and formatting for Hebrew dates in both text and HTML formats.
+- Computation of weekdays, month lengths, and leap years for Hebrew dates.
+- Operations for date arithmetic, such as adding and subtracting days, months, and years.
+- Methods for obtaining today's Hebrew date or constructing a Hebrew date from a Gregorian date.
+- Calendar iteration and formatting for Hebrew dates in HTML format.
 - Right-to-left (RTL) HTML calendar display with optional Gregorian date annotations.
 - Customizable CSS styling for calendar presentation.
 - Support for generating complete calendar pages for months and years.
