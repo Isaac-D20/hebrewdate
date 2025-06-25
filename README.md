@@ -24,7 +24,7 @@ It offers four main classes:
 - Support for generating complete calendar pages for months and years.
 
 #### Limitations:
-
+- Supported Python versions: 3.9 and later
 - Date conversions before 1752 CE may be inaccurate due to historical and calendar system variations.
 - Dates far in the past may not be convertible to Gregorian dates
 

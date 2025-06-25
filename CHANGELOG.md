@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- Removed support for Python version 3.8
 - `IllegalMonthError` and `IllegalWeekdayError`. Using standard `ValueError` instead.
 
 ## [1.0.0] - 29-04-2025
