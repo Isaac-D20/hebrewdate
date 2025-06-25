@@ -1,11 +1,10 @@
 #  Copyright (c) 2025 Isaac Dovolsky
 
-from unittest import TestCase
 import datetime as dt
+from unittest import TestCase
 from hebrewdate import HebrewDate, HebrewYear, HebrewCalendar, HTMLHebrewCalendar
 
-
-class TestHebrewYearAdditional(TestCase):
+class TestHebrewYear(TestCase):
 
     def test_hebrew_year_creation_invalid_value(self):
         with self.assertRaises(ValueError):
@@ -86,13 +85,32 @@ class TestHebrewYearAdditional(TestCase):
 
     def test_str_and_repr_methods(self):
         year = HebrewYear(5783)
-        self.assertEqual(str(year), "5783")
-        self.assertEqual(repr(year), "Year(5783)")
+        self.assertEqual(str(year), "ה'תשפ\"ג")
+        self.assertEqual(repr(year), "Year(ה'תשפ\"ג)")
 
     def test_first_weekday_calculation(self):
         year = HebrewYear(5783)
         self.assertTrue(isinstance(year.first_weekday, int))
         self.assertIn(year.first_weekday, range(0, 7))
+
+    def test_year_boundary_values(self):
+        with self.assertRaises(ValueError):
+            HebrewYear(0)  # Invalid year
+        with self.assertRaises(ValueError):
+            HebrewYear(-1)  # Negative year
+
+    def test_year_string_parsing_edge_cases(self):
+        tests = [
+            ("ה'תשפ\"ה", 5785),
+            ("ה תשפ\"ה", 5785),
+            ("ה תשפה", 5785),
+            ("ה'תשפה", 5785)
+        ]
+        for year_str, expected in tests:
+            year = HebrewYear(year_str)
+            self.assertEqual(year.year, expected)
+        with self.assertRaises(ValueError):
+            HebrewYear("התשפה")
 
 
 class TestHebrewDate(TestCase):
@@ -200,6 +218,63 @@ class TestHebrewDate(TestCase):
         hebrew_date = HebrewDate.today()
         self.assertTrue(isinstance(hebrew_date, HebrewDate))
 
+    def test_holiday_property(self):
+        pesach = HebrewDate(15, "ניסן", 5785)
+        regular_day = HebrewDate(2, "חשוון", 5785)
+        self.assertEqual(pesach.holiday, 'יו"ט ראשון של פסח')
+        self.assertEqual(regular_day.holiday, "")
+
+    def test_hebrew_date_string_parsing(self):
+        date_str = "ט\"ו ניסן ה'תשפ\"ה"
+        hebrew_date = HebrewDate(*date_str.split(' '))
+        self.assertEqual(hebrew_date.day_numeric, 15)
+        self.assertEqual(hebrew_date.month_numeric, 7)
+        self.assertEqual(hebrew_date.year_numeric, 5785)
+
+    def test_date_format_validation(self):
+        with self.assertRaises(ValueError):
+            HebrewDate(32, 1, 5785)  # Invalid day
+        with self.assertRaises(ValueError):
+            HebrewDate(1, 13, 5783)  # Invalid month for non-leap year
+
+    def test_invalid_day_values(self):
+        with self.assertRaises(ValueError):
+            HebrewDate(day=31, month=1, year=5785)  # Too high
+        with self.assertRaises(ValueError):
+            HebrewDate(day=0, month=1, year=5785)   # Too low
+        with self.assertRaises(ValueError):
+            HebrewDate(day="invalid", month=1, year=5785)  # Invalid string
+
+    def test_invalid_month_values(self):
+        with self.assertRaises(ValueError):
+            HebrewDate(day=1, month=13, year=5785)  # Invalid in non-leap year
+        with self.assertRaises(ValueError):
+            HebrewDate(day=1, month="invalid", year=5785)  # Invalid month name
+
+    def test_edge_case_dates(self):
+        # Last day of the year
+        last_day = HebrewDate(29, 12, 5785)
+        self.assertEqual((last_day + 1).year_numeric, 5786)
+        # First day of the year
+        first_day = HebrewDate(1, 1, 5785)
+        self.assertEqual((first_day - 1).year_numeric, 5784)
+
+    def test_delta_edge_cases(self):
+        date = HebrewDate(1, 1, 5785)
+        # Test month overflow
+        self.assertEqual(date.delta(months=12).month_numeric, 1)
+        # Test month underflow
+        self.assertEqual(date.delta(months=-1).year_numeric, 5784)
+        # Test large day differences
+        self.assertEqual(date.delta(days=400).year_numeric, 5786)
+
+    def test_gregorian_conversion_roundtrip(self):
+        original = HebrewDate(15, 1, 5785)
+        gregorian = original.to_gregorian()
+        converted = HebrewDate.from_gregorian(date=gregorian)
+        self.assertEqual(original, converted)
+
+
 class TestHebrewCalendar(TestCase):
 
     def test_itermonthdays_produces_correct_day_numbers(self):
@@ -217,15 +292,15 @@ class TestHebrewCalendar(TestCase):
         days = list(calendar.itermonthdays(year, month))
         self.assertIn(0, days)  # Ensure zeros are included before and after the month's days
 
-    def test_itermonthdays2gregorian_returns_correct_tuple_format(self):
-        calendar = HebrewCalendar()
-        year = 5785
-        month = 1
-        days = list(calendar.itermonthdays2gregorian(year, month))
-        self.assertTrue(all(len(day_tuple) == 3 for day_tuple in days))
+    # noinspection PyTypeChecker
+    def test_itermonthdays2_returns_correct_tuple_format(self):
+        calendar = HebrewCalendar(with_gregorian=False, with_holidays=False)
+        days = list(calendar.itermonthdays2(5785, 1))
+        self.assertTrue(all(len(day_tuple) == 4 for day_tuple in days))
         self.assertTrue(all(isinstance(day_tuple[0], int) for day_tuple in days))
         self.assertTrue(all(isinstance(day_tuple[1], int) for day_tuple in days))
         self.assertTrue(all(isinstance(day_tuple[2], str) or day_tuple[2] == "" for day_tuple in days))
+        self.assertTrue(all(isinstance(day_tuple[3], str) or day_tuple[3] == "" for day_tuple in days))
 
     def test_monthdays2calendar_returns_correct_matrix_size(self):
         calendar = HebrewCalendar()
@@ -236,12 +311,10 @@ class TestHebrewCalendar(TestCase):
         self.assertEqual(len(matrix) * 7, len([day for week in matrix for day in week]))
 
     def test_monthdays2calendar_with_gregorian_flag(self):
-        calendar = HebrewCalendar()
-        year = 5785
-        month = 1
-        matrix_with_gregorian = calendar.monthdays2calendar(year, month, with_gregorian=True)
+        calendar = HebrewCalendar(with_gregorian=True)
+        matrix_with_gregorian = calendar.monthdays2calendar(5785, 1)
         self.assertTrue(all(len(week) == 7 for week in matrix_with_gregorian))
-        self.assertTrue(all(len(day_tuple) == 3 for week in matrix_with_gregorian for day_tuple in week))
+        self.assertTrue(all(len(day_tuple) == 4 for week in matrix_with_gregorian for day_tuple in week))
 
 class TestHTMLHebrewCalendar(TestCase):
 
@@ -249,14 +322,48 @@ class TestHTMLHebrewCalendar(TestCase):
         calendar = HTMLHebrewCalendar(firstweekday=0)
         result = calendar.formatmonth(5785, 1)
         self.assertIn('<table dir="rtl', result)
-        self.assertIn('תשרי 5785', result)
+        self.assertIn('תשרי ה\'תשפ"ה', result)
 
     def test_formatmonth_with_gregorian_dates(self):
-        calendar = HTMLHebrewCalendar(firstweekday=0)
-        result = calendar.formatmonth(5785, 1, with_gregorian=True)
+        calendar = HTMLHebrewCalendar(firstweekday=0, with_gregorian=True)
+        result = calendar.formatmonth(5785, 1)
         self.assertIn('October-November', result)
+
+    def test_custom_data_styling(self):
+        calendar = HTMLHebrewCalendar(firstweekday=0)
+        calendar.custom_data = {
+            15: {
+                'classes': ['highlight', 'special-day'],
+                'content': ['Meeting']
+            }
+        }
+        result = calendar.formatmonth(5785, 1)
+        self.assertIn('class="sat day highlight special-day"', result)
+        self.assertIn('Meeting', result)
+
+    def test_custom_data_validation(self):
+        cal = HTMLHebrewCalendar()
+        cal.custom_data = {
+            0: {'classes': ['test']},  # Invalid day
+            32: {'content': ['test']}  # Invalid day
+        }
+        html = cal.formatmonth(5785, 1)
+        self.assertNotIn('test', html)
 
     def test_formatday_outside_month(self):
         calendar = HTMLHebrewCalendar(firstweekday=0)
         result = calendar.formatday(0, 0)
         self.assertEqual(result, '<td class="noday">&nbsp;</td>')
+
+    def test_formatmonth_with_holidays(self):
+        """Test holiday formatting in the calendar."""
+        cal = HTMLHebrewCalendar(with_holidays=True)
+        html = cal.formatmonth(5785, 1)  # Tishrei
+        self.assertIn('ראש השנה', html)  # Should contain Rosh Hashana
+
+    def test_calendar_holiday_integration(self):
+        cal = HTMLHebrewCalendar(with_holidays=True, with_festive_days=True)
+        date = HebrewDate(15, "ניסן", 5785)  # First day of Pesach
+        self.assertTrue(date.is_holiday)
+        html = cal.formatmonth(5785, date.month_numeric)
+        self.assertIn(date.holiday, html)
