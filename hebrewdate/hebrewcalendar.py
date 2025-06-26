@@ -63,7 +63,10 @@ class HebrewCalendar(Calendar):
             if d != 0:
                 h_date = HebrewDate(d, month, year, self.with_festive_days, self.with_fasts)
                 if self.with_gregorian:
-                    date = h_date.to_gregorian().strftime("%d")
+                    try:
+                        date = h_date.to_gregorian().strftime("%d")
+                    except ValueError:
+                        date = ""
                 if self.with_holidays:
                     holiday = h_date.holiday
             yield d, i % 7, date, holiday
