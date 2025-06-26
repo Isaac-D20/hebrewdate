@@ -7,13 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.1] - 27-06-2025
 
-- `HebrewCalendar` didn't account for old dates which cannot have a gregorian date
+### Fixed
+
+- `HebrewCalendar` didn't account for old dates, which cannot have a Gregorian date
 
 ## [2.0.0] - 25-06-2025
 
 ### Added
 
-- Added support for Hebrew holidays, festive days and fasting days
+- Added support for Hebrew holidays, festive days, and fasting days
 - Enhanced HTML calendar formatting with holidays
 - Improved CSS customization options
 - Traditional string representation for Hebrew years
@@ -24,10 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `HebrewDate` and `HebrewYear` accept a formatted string for the year argument (see formats in docs)
 - `HebrewDate.genesis` represents the number of **parts** since the epoch instead of days
 - refactored the `with_gregorian` argument from the formatting methods of `HebrewCalendar` and `HTMLHebrewCalendar`,
-  to an attribute of these classes which can be passed upon initialization or set later.
+  to an attribute of these classes, which can be passed upon initialization or set later.
 - renamed `HebrewCalendar.itermonthdays2gregorian` to `HebrewCalendar.itermonthdays2`
-- `HebrewCalendar.itermonthdays2` always yields gregorian dates and holiday strings
-  (in addition to the default day and weekday). if the corresponding flags are set to False, 
+- `HebrewCalendar.itermonthdays2` always yields Gregorian dates and holiday strings
+  (in addition to the default day and weekday). If the corresponding flags are set to False, 
   then they are guaranteed to be empty strings.
 - `HTMLHebrewCalendar.format_day` accepts additional non-keyword arguments to insert in its element
 
