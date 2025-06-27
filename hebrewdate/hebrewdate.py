@@ -11,8 +11,9 @@ import datetime as dt
 from .holidays import get_holiday
 from .hebrewyear import HebrewYear
 
-EPOCH_H_DATE = (14, 4, 5512)  # Hebrew date of Gregorian Epoch (14 Nissan 5512)
-EPOCH_G_DATE = (1752, 1, 1)  # Corresponding Gregorian Epoch
+EPOCH_H_DATE = (14, 4, 5512)  # Hebrew date of Gregorian epoch (14 Nissan 5512)
+EPOCH_G_DATE = (1752, 1, 1)   # Corresponding Gregorian epoch
+G_BOUNDARY = (19, 4, 3671)    # Hebrew date of proleptic Gregorian epoch
 
 # Hebrew Days and Weekdays
 HEBREW_DAYS = (

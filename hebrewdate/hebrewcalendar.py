@@ -8,7 +8,7 @@ import sys
 from itertools import repeat
 from .hebrewyear import HebrewYear
 from calendar import Calendar, HTMLCalendar
-from .hebrewdate import HebrewDate, _validate_month, WEEKDAYS, HEBREW_DAYS
+from .hebrewdate import HebrewDate, _validate_month, WEEKDAYS, HEBREW_DAYS, G_BOUNDARY
 
 
 class HebrewCalendar(Calendar):
@@ -179,7 +179,7 @@ class HTMLHebrewCalendar(HebrewCalendar, HTMLCalendar):
         """
         _validate_month(month, year)
         h_year = HebrewYear(year)
-        if self.with_gregorian:
+        if self.with_gregorian and (year > G_BOUNDARY[2] or (year == G_BOUNDARY[2] and month > G_BOUNDARY[1])):
             start = HebrewDate(month=month, year=year)
             end = (start + h_year.days[month - 1]).to_gregorian().strftime("%B")
             start = start.to_gregorian()
