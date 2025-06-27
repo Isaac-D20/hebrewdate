@@ -4,6 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hebrewdate"
+dynamic = ["version"]
 authors = [
     {name = "Isaac Dovolsky", email = "yidovolsky2@gmail.com"},
 ]
