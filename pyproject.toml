@@ -9,18 +9,20 @@ authors = [
 ]
 description = "A Python package for handling Hebrew dates"
 readme = "README.md"
-changelog = "CHANGELOG.md"
-requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+requires-python = ">=3.9"
 
 [project.urls]
-"Homepage" = "https://github.com/Isaac-D20/hebrewdate"
+Homepage = "https://github.com/Isaac-D20/hebrewdate"
 "Bug Tracker" = "https://github.com/Isaac-D20/hebrewdate/issues"
+Changelog = "https://github.com/Isaac-D20/hebrewdate/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["hebrewdate"]
