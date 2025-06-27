@@ -6,11 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [2.0.2] - 27-06-2025
+## [2.0.3] - 27-06-2025
 
 ### Fixed
 
-- `HTMLHebrewCalendar` didn't check if date is out of Gregorian range
+- `HebrewCalendar` and `HTMLHebrewCalendar` didn't check if date is out of Gregorian range
 
 ## [2.0.1] - 27-06-2025
 
