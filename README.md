@@ -11,7 +11,7 @@ It offers four main classes:
 - ``HebrewCalendar``: Extends Python's built-in `Calendar` class to provide Hebrew calendar functionality,
   including methods for iterating over month days and converting between Hebrew and Gregorian dates.
 - ``HTMLHebrewCalendar``: Provides HTML formatting of Hebrew calendar data with support for both
-  Hebrew and Gregorian date display, selection layers for holidays, festive days, and fasts, custom CSS styling.
+  Hebrew and Gregorian date display, selection layers for holidays, festive days, and fasts, and custom CSS styling.
 
 #### Key Features:
 - Conversion between Hebrew and Gregorian dates.
