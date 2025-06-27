@@ -178,7 +178,7 @@ class HTMLHebrewCalendar(HebrewCalendar, HTMLCalendar):
         h_year = HebrewYear(year)
         if self.with_gregorian and (year > G_BOUNDARY[2] or (year == G_BOUNDARY[2] and month > G_BOUNDARY[1])):
             start = HebrewDate(month=month, year=year)
-            end = (start + h_year.days[month - 1]).to_gregorian().strftime("%B")
+            end = (start + (h_year.days[month - 1] - 1)).to_gregorian().strftime("%B")
             start = start.to_gregorian()
             g_year = start.year
             start = start.strftime('%B')

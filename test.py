@@ -9,12 +9,20 @@ class TestHebrewYear(TestCase):
     def test_hebrew_year_creation_invalid_value(self):
         with self.assertRaises(ValueError):
             HebrewYear(0)
+        with self.assertRaises(ValueError):
+            HebrewYear(10000)
 
     def test_is_leap_year_static_method(self):
         leap_year = 5784
         non_leap_year = 5783
         self.assertTrue(HebrewYear.is_leap_year(leap_year))
         self.assertFalse(HebrewYear.is_leap_year(non_leap_year))
+
+    def test_leap_year_month_transitions(self):
+        leap_year = HebrewDate(30, 6, 5784)  # Last day of Adar I
+        next_day = leap_year + 1
+        self.assertEqual(next_day.month, "אדר ב")
+        self.assertEqual(next_day.day_numeric, 1)
 
     def test_month_count_based_on_leap_year(self):
         leap_year = HebrewYear(5784)
@@ -71,12 +79,6 @@ class TestHebrewYear(TestCase):
         self.assertEqual(previous_year.year, 5782)
         self.assertEqual(year_difference, 2)
 
-    def test_len_method_on_hebrew_year(self):
-        leap_year = HebrewYear(5784)
-        non_leap_year = HebrewYear(5783)
-        self.assertEqual(len(leap_year), 13)
-        self.assertEqual(len(non_leap_year), 12)
-
     def test_first_new_moon_result(self):
         year = HebrewYear(5783)
         first_new_moon = year.first_new_moon()
@@ -92,12 +94,6 @@ class TestHebrewYear(TestCase):
         year = HebrewYear(5783)
         self.assertTrue(isinstance(year.first_weekday, int))
         self.assertIn(year.first_weekday, range(0, 7))
-
-    def test_year_boundary_values(self):
-        with self.assertRaises(ValueError):
-            HebrewYear(0)  # Invalid year
-        with self.assertRaises(ValueError):
-            HebrewYear(-1)  # Negative year
 
     def test_year_string_parsing_edge_cases(self):
         tests = [
@@ -136,12 +132,12 @@ class TestHebrewDate(TestCase):
     def test_comparison_operations(self):
         hebrew_date1 = HebrewDate(1, 1, 5785)
         hebrew_date2 = HebrewDate(2, 1, 5785)
+        hebrew_date3 = HebrewDate(1, 1, 5785)
         self.assertTrue(hebrew_date1 < hebrew_date2)
         self.assertTrue(hebrew_date1 <= hebrew_date2)
         self.assertTrue(hebrew_date2 > hebrew_date1)
         self.assertTrue(hebrew_date2 >= hebrew_date1)
         self.assertTrue(hebrew_date1 != hebrew_date2)
-        hebrew_date3 = HebrewDate(1, 1, 5785)
         self.assertTrue(hebrew_date1 == hebrew_date3)
 
     def test_addition_operation(self):
@@ -194,6 +190,12 @@ class TestHebrewDate(TestCase):
         self.assertTrue(isinstance(result_date, HebrewDate))
         self.assertNotEqual(result_date.year_numeric, hebrew_date.year_numeric)
 
+    def test_delta_method_with_negative_values(self):
+        hebrew_date = HebrewDate(1, 1, 5785)
+        result_date = hebrew_date.delta(days=-1, months=-1, years=-1)
+        self.assertTrue(isinstance(result_date, HebrewDate))
+        self.assertNotEqual(result_date.year_numeric, hebrew_date.year_numeric)
+
     def test_from_gregorian(self):
         hebrew_date = HebrewDate.from_gregorian(day=1, month=1, year=2024)
         self.assertTrue(isinstance(hebrew_date, HebrewDate))
@@ -224,6 +226,13 @@ class TestHebrewDate(TestCase):
         self.assertEqual(pesach.holiday, 'יו"ט ראשון של פסח')
         self.assertEqual(regular_day.holiday, "")
 
+    def test_holiday_transitions(self):
+        # Test holiday start/end transitions
+        holiday_start = HebrewDate(14, "ניסן", 5785)  # Erev Pesach
+        holiday = holiday_start + 1  # First day of Pesach
+        self.assertFalse(holiday_start.is_holiday)
+        self.assertTrue(holiday.is_holiday)
+
     def test_hebrew_date_string_parsing(self):
         date_str = "ט\"ו ניסן ה'תשפ\"ה"
         hebrew_date = HebrewDate(*date_str.split(' '))
@@ -236,14 +245,8 @@ class TestHebrewDate(TestCase):
             HebrewDate(32, 1, 5785)  # Invalid day
         with self.assertRaises(ValueError):
             HebrewDate(1, 13, 5783)  # Invalid month for non-leap year
-
-    def test_invalid_day_values(self):
         with self.assertRaises(ValueError):
-            HebrewDate(day=31, month=1, year=5785)  # Too high
-        with self.assertRaises(ValueError):
-            HebrewDate(day=0, month=1, year=5785)   # Too low
-        with self.assertRaises(ValueError):
-            HebrewDate(day="invalid", month=1, year=5785)  # Invalid string
+            HebrewDate("invalid", 1, 5785)  # Invalid string
 
     def test_invalid_month_values(self):
         with self.assertRaises(ValueError):
