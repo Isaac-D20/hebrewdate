@@ -23,8 +23,7 @@ HEBREW_DAYS = (
 )
 WEEKDAYS = ("שבת", "ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי")
 
-def _validate_month(month: int | str, year: int) -> str:
-    year = HebrewYear(year)
+def _validate_month(month, year: HebrewYear) -> str:
     if isinstance(month, int):
         if month < 1 or month > (13 if year.is_leap else 12):
             raise ValueError(f"bad month value '{month}'")
@@ -36,11 +35,11 @@ def _validate_month(month: int | str, year: int) -> str:
         raise TypeError("Invalid month type")
     return month
 
-def _validate_day(day: int | str, month: int, year: int) -> str:
-    year = HebrewYear(year)
+def _validate_day(day, month: str, year: HebrewYear) -> str:
+    month = year.months.index(month)
     if isinstance(day, int):
-        if day < 1 or day > year.days[month - 1]:
-            raise ValueError(f"bad day value '{day}' for {year.days[month - 1]}-day month")
+        if day < 1 or day > year.days[month]:
+            raise ValueError(f"bad day value '{day}' for {year.days[month]}-day month")
         day = HEBREW_DAYS[day - 1]
     elif isinstance(day, str):
         day = day.replace('"', '')
@@ -61,7 +60,7 @@ class HebrewDate:
         The day of the Hebrew date, represented either as an integer (1-30) or as a string (see notes below).
     **month**: ``int`` | ``str``, optional (default: 1)
         The month of the Hebrew date, represented either as an integer (1-12/13) or as a string.
-    **year**: ``int`` | ``str``, optional (default: 5785)
+    **year**: ``int`` | ``str``, optional (default: current year)
         The year of the Hebrew date, represented either as an integer (1-9999) or as a string (see notes below).
     **include_festive_days**: ``bool``, optional (default: False)
         Specifies whether to include festive days in the calculation of holidays.
@@ -88,6 +87,13 @@ class HebrewDate:
         Numeric representation of the Hebrew weekday (1-7, where 1 is Sunday).
     **genesis**: ``int``
         The number of parts since the Hebrew epoch up to the start of the current date.
+    **include_festive_days**: ``bool``
+        Can be changed to include festive days in the calculation of holidays.
+    **include_fasts**: ``bool``
+        Can be changed to include fasts in the calculation of holidays.
+
+    Properties:
+    -----------
     **is_holiday**: ``bool``
         Specifies whether the current date is a Hebrew holiday.
     **holiday**: ``str``
@@ -95,6 +101,8 @@ class HebrewDate:
 
     Notes:
     ------
+    **Important:** If both day and month are provided, then year must also be provided.
+
     The string input for the day parameter can be both with quotation marks in the middle or without.
 
     The valid input formats for the year parameter as a string are as follows:
@@ -104,17 +112,32 @@ class HebrewDate:
     - Quotation marks before the units part, e.g. ה'תשפ"ה or ה תשפ"ה
     """
 
-    def __init__(self, day: int | str = 1, month: int | str = 1, year: int | str = 5785,
+    def __init__(self, day: int | str = None, month: int | str = None, year: int | str = None,
                  include_festive_days: bool = False, include_fasts: bool = False):
+        if year is None:
+            if day is not None and month is not None:
+                raise ValueError("If both `day` and `month` are provided, then `year` must also be provided.")
+            _d, _m, year = self.today()
+            if day is None and month is None:
+                day, month = _d, _m
+
         self.year = HebrewYear(year)
+        self.month = _validate_month(1 if month is None else month, self.year)
+        self.day = _validate_day(1 if day is None else day, self.month, self.year)
+
         self.year_numeric = self.year.year
-        self.month = _validate_month(month, self.year_numeric)
-        self.month_numeric, self.month = self.get_month()
-        self.day = _validate_day(day, self.month_numeric, self.year_numeric)
-        self.day_numeric, self.day = self.get_day()
-        self.weekday_numeric, self.weekday = self.get_weekday()
+        self.month_numeric = self.year.months.index(self.month) + 1
+        self.day_numeric = HEBREW_DAYS.index(self.day) + 1
+
+        weekday = (sum(i for i in self.year.days[:self.month_numeric - 1]) +
+                   self.year.first_weekday + self.day_numeric - 1) % 7
+        self.weekday = WEEKDAYS[weekday]
+        self.weekday_numeric = (7 if weekday == 0 else weekday)
+
         self.genesis = self.year.first_new_moon() + self.days_before() * 1080 * 24
-        self.is_holiday, self.holiday = get_holiday(self, include_festive_days, include_fasts)
+        self.include_festive_days = include_festive_days
+        self.include_fasts = include_fasts
+        self._is_holiday, self._holiday = get_holiday(self, include_festive_days, include_fasts)
 
     def __repr__(self) -> str:
         return f"HebrewDate({self.__str__()})"
@@ -143,31 +166,41 @@ class HebrewDate:
     def __ge__(self, other: int | float | HebrewDate) -> bool:
         return int(self) >= int(other)
 
-    def __add__(self, other: int | float) -> HebrewDate:
+    def __add__(self, other) -> HebrewDate:
         if isinstance(other, (int, float)):
             return self.delta(days=int(other))
         raise ValueError(f"Unsupported operand type(s) for +: 'HebrewDate' and {type(other).__name__}")
 
-    def __sub__(self, other: int | float | HebrewDate) -> int | HebrewDate:
+    def __sub__(self, other) -> int | HebrewDate:
         if isinstance(other, (int, float)):
             return self.delta(days=-int(other))
         if isinstance(other, HebrewDate):
             return (int(self) - int(other)) // 1080 // 24
         raise TypeError(f"Unsupported operand type(s) for +: 'HebrewDate' and {type(other).__name__}")
 
-    def get_month(self) -> tuple[int, str]:
+    def __iter__(self): return iter((self.day_numeric, self.month_numeric, self.year_numeric))
+
+    @property
+    def is_holiday(self) -> bool:
+        """Returns whether the current date is a Hebrew holiday."""
+        return get_holiday(self, self.include_festive_days, self.include_fasts)[0]
+
+    @property
+    def holiday(self) -> str:
+        """Returns the name of the Hebrew holiday if the current date is a Hebrew holiday, otherwise ''."""
+        return get_holiday(self, self.include_festive_days, self.include_fasts)[1]
+
+    def get_month_tuple(self) -> tuple[int, str]:
         """Get the month number and name as a tuple."""
-        return self.year.months.index(self.month) + 1, self.month
+        return self.month_numeric, self.month
 
-    def get_day(self) -> tuple[int, str]:
+    def get_day_tuple(self) -> tuple[int, str]:
         """Get the day number and name as a tuple."""
-        return HEBREW_DAYS.index(self.day) + 1, self.day
+        return self.day_numeric, self.day
 
-    def get_weekday(self) -> tuple[int, str]:
+    def get_weekday_tuple(self) -> tuple[int, str]:
         """Get the weekday number and name as a tuple."""
-        weekday = (sum(i for i in self.year.days[:self.month_numeric - 1]) +
-                   self.year.first_weekday + self.day_numeric - 1) % 7
-        return (7 if weekday == 0 else weekday), WEEKDAYS[weekday]
+        return self.weekday_numeric, self.weekday
 
     def days_before(self) -> int:
         """Calculates the number of days from the start of the year to the current date."""
@@ -240,12 +273,9 @@ class HebrewDate:
         ``ValueError``
             If both `date` and the `day`, `month`, and `year` arguments are missing.
         """
-        if date is not None:
-            if not isinstance(date, dt.date):
-                raise TypeError("date must be a datetime.date object")
-        elif day and month and year:
+        if day and month and year:
             date = dt.date(year, month, day)
-        else:
+        elif date is None:
             raise ValueError("Provide either a valid `date` or `day`, `month`, and `year` arguments.")
         if date.year < 1752:
             warnings.warn("Hebrew dates may be inaccurate for years earlier than 1752.", RuntimeWarning, 2)

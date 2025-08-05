@@ -67,4 +67,4 @@ This project is licensed under the MIT License. See the LICENSE file for details
 
 ## Author
 
-Isaac Dovolsky © 2025
+Isaac Dovolsky

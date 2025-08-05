@@ -174,8 +174,8 @@ class HTMLHebrewCalendar(HebrewCalendar, HTMLCalendar):
         """
         Return a month name as a table row.
         """
-        _validate_month(month, year)
         h_year = HebrewYear(year)
+        _validate_month(month, h_year)
         if self.with_gregorian and (year > G_BOUNDARY[2] or (year == G_BOUNDARY[2] and month > G_BOUNDARY[1])):
             start = HebrewDate(month=month, year=year)
             end = (start + (h_year.days[month - 1] - 1)).to_gregorian().strftime("%B")

@@ -116,6 +116,16 @@ class TestHebrewDate(TestCase):
         self.assertEqual(hebrew_date.day_numeric, 1)
         self.assertEqual(hebrew_date.month_numeric, 1)
         self.assertEqual(hebrew_date.year_numeric, 5785)
+        with self.assertRaises(ValueError):
+            HebrewDate(1, 1, "invalid")
+        with self.assertRaises(ValueError):
+            HebrewDate(1, 13, 5785)
+        with self.assertRaises(ValueError):
+            HebrewDate(32, 1, 5785)
+        with self.assertRaises(ValueError):
+            HebrewDate(1, "invalid", 5785)
+        with self.assertRaises(ValueError):
+            HebrewDate(1, 1)
 
     def test_hebrew_date_repr(self):
         hebrew_date = HebrewDate(1, 1, 5785)
@@ -158,19 +168,19 @@ class TestHebrewDate(TestCase):
 
     def test_get_month(self):
         hebrew_date = HebrewDate(1, "ניסן", 5785)
-        month_numeric, month_name = hebrew_date.get_month()
+        month_numeric, month_name = hebrew_date.get_month_tuple()
         self.assertEqual(month_numeric, 7)
         self.assertEqual(month_name, "ניסן")
 
     def test_get_day(self):
         hebrew_date = HebrewDate(3, "ניסן", 5785)
-        day_numeric, day_name = hebrew_date.get_day()
+        day_numeric, day_name = hebrew_date.get_day_tuple()
         self.assertEqual(day_numeric, 3)
         self.assertTrue(isinstance(day_name, str))
 
     def test_get_weekday(self):
         hebrew_date = HebrewDate(1, "ניסן", 5785)
-        weekday_numeric, weekday_name = hebrew_date.get_weekday()
+        weekday_numeric, weekday_name = hebrew_date.get_weekday_tuple()
         self.assertTrue(0 <= weekday_numeric <= 6)
         self.assertTrue(isinstance(weekday_name, str))
 
