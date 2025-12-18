@@ -2,7 +2,65 @@
 
 import datetime as dt
 from unittest import TestCase
-from hebrewdate import HebrewDate, HebrewYear, HebrewCalendar, HTMLHebrewCalendar
+from hebrewdate import HebrewDate, HebrewYear, HebrewCalendar, HTMLHebrewCalendar, HebrewMonth
+
+class TestHebrewMonth(TestCase):
+
+    def test_hebrew_month_initialization(self):
+        year = HebrewYear(5785)
+        month = HebrewMonth(year, 1)
+        self.assertEqual(month.name, "תשרי")
+        self.assertEqual(month.index, 1)
+        self.assertEqual(month.length, 30)
+
+        month_str = HebrewMonth(year, "ניסן")
+        self.assertEqual(month_str.index, 7)
+        self.assertEqual(month_str.name, "ניסן")
+
+    def test_hebrew_month_invalid_initialization(self):
+        year = HebrewYear(5785)
+        with self.assertRaises(ValueError):
+            HebrewMonth(year, 0)
+        with self.assertRaises(ValueError):
+            HebrewMonth(year, 13)
+        with self.assertRaises(ValueError):
+            HebrewMonth(year, "Invalid")
+        with self.assertRaises(TypeError):
+            HebrewMonth(year, None)
+
+    def test_hebrew_month_leap_year(self):
+        year = HebrewYear(5784)  # Leap year
+        self.assertEqual(year.month_count, 13)
+        month = HebrewMonth(year, 6)
+        self.assertEqual(month.name, "אדר א")
+        month2 = HebrewMonth(year, 7)
+        self.assertEqual(month2.name, "אדר ב")
+
+    def test_hebrew_month_length_variation(self):
+        # Test Heshvan/Kislev variations
+        year_short = HebrewYear(5784)  # Heshvan 29, Kislev 29
+        self.assertEqual(HebrewMonth(year_short, 2).length, 29)
+        self.assertEqual(HebrewMonth(year_short, 3).length, 29)
+
+        year_long = HebrewYear(5785)  # Heshvan 30, Kislev 30
+        self.assertEqual(HebrewMonth(year_long, 2).length, 30)
+        self.assertEqual(HebrewMonth(year_long, 3).length, 30)
+
+    def test_hebrew_month_str_repr(self):
+        year = HebrewYear(5785)
+        month = HebrewMonth(year, 1)
+        self.assertEqual(str(month), "תשרי")
+        self.assertEqual(repr(month), "HebrewMonth(תשרי, 5785)")
+
+    def test_hebrew_month_equality(self):
+        year = HebrewYear(5785)
+        month = HebrewMonth(year, 1)
+        self.assertEqual(month, 1)
+        self.assertEqual(month, "תשרי")
+        self.assertEqual(month, HebrewMonth(year, 1))
+        self.assertNotEqual(month, 2)
+        self.assertNotEqual(month, "ניסן")
+
 
 class TestHebrewYear(TestCase):
 
@@ -95,18 +153,42 @@ class TestHebrewYear(TestCase):
         self.assertTrue(isinstance(year.first_weekday, int))
         self.assertIn(year.first_weekday, range(0, 7))
 
-    def test_year_string_parsing_edge_cases(self):
+    def test_hebrew_year_creation_extreme_values(self):
+        self.assertEqual(HebrewYear(1).year, 1)
+        self.assertEqual(HebrewYear(9999).year, 9999)
+        with self.assertRaises(ValueError):
+            HebrewYear(10000)
+
+    def test_year_string_parsing_comprehensive(self):
         tests = [
             ("ה'תשפ\"ה", 5785),
             ("ה תשפ\"ה", 5785),
             ("ה תשפה", 5785),
-            ("ה'תשפה", 5785)
+            ("ה'תשפה", 5785),
+            ("א'תס\"ב", 1462),
+            ("ה'תשכ\"ד", 5724),
+            ("ה'תנ\"ה", 5455),
+            ("א'", 1000),
+            ("תשפ\"ה", 785),
         ]
         for year_str, expected in tests:
-            year = HebrewYear(year_str)
-            self.assertEqual(year.year, expected)
-        with self.assertRaises(ValueError):
-            HebrewYear("התשפה")
+            with self.subTest(year_str=year_str):
+                self.assertEqual(HebrewYear(year_str).year, expected)
+
+    def test_year_to_str_comprehensive(self):
+        tests = [
+            (5785, "ה'תשפ\"ה"),
+            (1462, "א'תס\"ב"),
+            (5724, "ה'תשכ\"ד"),
+            (5455, "ה'תנ\"ה"),
+            (1000, "א'"),
+            (785, "תשפ\"ה"),
+            (5015, "ה'ט\"ו"),
+            (5016, "ה'ט\"ז"),
+        ]
+        for year, expected in tests:
+            with self.subTest(year=year):
+                self.assertEqual(HebrewYear.year_to_str(year), expected)
 
 
 class TestHebrewDate(TestCase):
@@ -230,18 +312,93 @@ class TestHebrewDate(TestCase):
         hebrew_date = HebrewDate.today()
         self.assertTrue(isinstance(hebrew_date, HebrewDate))
 
-    def test_holiday_property(self):
-        pesach = HebrewDate(15, "ניסן", 5785)
-        regular_day = HebrewDate(2, "חשוון", 5785)
-        self.assertEqual(pesach.holiday, 'יו"ט ראשון של פסח')
-        self.assertEqual(regular_day.holiday, "")
+    def test_holiday_comprehensive(self):
+        tests = [
+            (1, 1, 5785, 'ראש השנה'),
+            (2, 1, 5785, 'ראש השנה'),
+            (10, 1, 5785, 'יום כיפור'),
+            (15, 1, 5785, 'יו"ט ראשון של סוכות'),
+            (22, 1, 5785, 'שמחת תורה'),
+            (25, 3, 5785, 'חנוכה'),
+            (2, 4, 5785, 'חנוכה'),
+            (14, 6, 5784, 'פורים'),
+            (15, 6, 5784, 'שושן פורים'),
+            (15, 7, 5785, 'יו"ט ראשון של פסח'),
+            (21, 7, 5785, 'שביעי של פסח'),
+            (6, 9, 5785, 'שבועות'),
+        ]
+        for d, m, y, expected in tests:
+            with self.subTest(date=(d, m, y)):
+                date = HebrewDate(d, m, y, include_festive_days=True)
+                self.assertEqual(date.holiday, expected)
 
-    def test_holiday_transitions(self):
-        # Test holiday start/end transitions
-        holiday_start = HebrewDate(14, "ניסן", 5785)  # Erev Pesach
-        holiday = holiday_start + 1  # First day of Pesach
-        self.assertFalse(holiday_start.is_holiday)
-        self.assertTrue(holiday.is_holiday)
+    def test_fast_days(self):
+        tests = [
+            (4, 1, 5785, 'צום גדליה'), # 3 Tishrei is Shabbat, moved to 4
+            (10, 4, 5785, 'צום עשרה בטבת'),
+            (13, 6, 5784, 'תענית אסתר'),
+            (17, 10, 5785, 'צום י"ז בתמוז'), # Sunday
+            (9, 11, 5785, 'צום תשעה באב'), # Sunday
+        ]
+        for d, m, y, expected in tests:
+            with self.subTest(date=(d, m, y)):
+                date = HebrewDate(d, m, y, include_fasts=True)
+                self.assertEqual(date.holiday, expected)
+
+    def test_purim_meshulash(self):
+        # In 5781, Purim in Jerusalem was Meshulash
+        # 14 Adar = Friday
+        # 15 Adar = Shabat (Shushan Purim)
+        # 16 Adar = Sunday (Purim Meshulash)
+        date = HebrewDate(16, "אדר", 5781, include_festive_days=True)
+        self.assertEqual(date.holiday, "שושן פורים משולש")
+        self.assertEqual(date.weekday, "ראשון")
+
+    def test_hanukkah_length(self):
+        # Test Hanukkah in a year where Kislev has 29 days (e.g. 5784)
+        year_29 = HebrewYear(5784)
+        self.assertEqual(year_29.days[2], 29)
+        # Hanukkah: 25 Kislev to 2 Tevet (8 days)
+        last_day_kislev = HebrewDate(29, 3, 5784, include_festive_days=True)
+        self.assertEqual(last_day_kislev.holiday, "חנוכה")
+        first_day_tevet = HebrewDate(1, 4, 5784, include_festive_days=True)
+        self.assertEqual(first_day_tevet.holiday, "חנוכה")
+        second_day_tevet = HebrewDate(2, 4, 5784, include_festive_days=True)
+        self.assertEqual(second_day_tevet.holiday, "חנוכה")
+        third_day_tevet = HebrewDate(3, 4, 5784, include_festive_days=True)
+        self.assertEqual(third_day_tevet.holiday, "") # Not in 5784 (Kislev 29)
+
+        # Test Hanukkah in a year where Kislev has 30 days (e.g. 5785)
+        year_30 = HebrewYear(5785)
+        self.assertEqual(year_30.days[2], 30)
+        # Hanukkah: 25 Kislev to 3 Tevet (8 days)
+        thirtieth_kislev = HebrewDate(30, 3, 5785, include_festive_days=True)
+        self.assertEqual(thirtieth_kislev.holiday, "חנוכה")
+        third_day_tevet_30 = HebrewDate(3, 4, 5785, include_festive_days=True)
+        self.assertEqual(third_day_tevet_30.holiday, "חנוכה")
+        fourth_day_tevet_30 = HebrewDate(4, 4, 5785, include_festive_days=True)
+        self.assertEqual(fourth_day_tevet_30.holiday, "")
+
+    def test_delta_large_values(self):
+        date = HebrewDate(1, 1, 5785)
+        self.assertEqual(date.delta(years=1000).year_numeric, 6785)
+        self.assertEqual(date.delta(years=-1000).year_numeric, 4785)
+        self.assertEqual(date.delta(days=10000).year_numeric > 5785, True)
+        
+    def test_from_gregorian_boundary(self):
+        # 1752-01-01 is the boundary
+        date = dt.date(1752, 1, 1)
+        h_date = HebrewDate.from_gregorian(date=date)
+        self.assertEqual(h_date.to_gregorian(), date)
+        
+        # Test a very old date (proleptic Gregorian)
+        # 1-01-01
+        old_date = dt.date(1, 1, 1)
+        with self.assertWarns(RuntimeWarning):
+            h_date = HebrewDate.from_gregorian(date=old_date)
+            # Round trip might not be perfect for very old dates due to calendar shifts,
+            # but it should be consistent within our logic.
+            self.assertEqual(h_date.to_gregorian(), old_date)
 
     def test_hebrew_date_string_parsing(self):
         date_str = "ט\"ו ניסן ה'תשפ\"ה"
@@ -330,6 +487,18 @@ class TestHebrewCalendar(TestCase):
         self.assertTrue(all(len(day_tuple) == 4 for week in matrix_with_gregorian for day_tuple in week))
 
 class TestHTMLHebrewCalendar(TestCase):
+
+    def test_calendar_boundary_gregorian(self):
+        # 18 Tevet 3761 is 0001-01-01
+        cal = HTMLHebrewCalendar(with_gregorian=True)
+        # Suppress warnings for testing
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            html = cal.formatmonth(3761, 4)
+        self.assertIn('January 1', html)
+        self.assertIn('יח<br>01', html)
+        self.assertIn('יז</div>', html) # No Gregorian for 17 Tevet
 
     def test_formatmonth_with_hebrew_year(self):
         calendar = HTMLHebrewCalendar(firstweekday=0)

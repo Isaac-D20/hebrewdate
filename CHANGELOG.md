@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 18-12-2025
+
+### Optimized
+- Optimized `HebrewYear` with `lru_cache` for year data and more efficient leap year checking.
+- Optimized `HebrewDate` arithmetic operations (`__add__`, `__sub__`, `delta`) to reduce redundant calculations.
+- Improved `HebrewMonth` initialization efficiency.
+- Refined `get_holiday` logic for better performance by avoiding unnecessary dictionary lookups and object creation.
+
+### Added
+- New `HebrewMonth` class to encapsulate month-specific logic and validation.
+- Comprehensive test suite covering extreme years (1-9999), edge case holidays (Purim Meshulash, Hanukkah length, Tu B'Av), and various Hebrew year string formats.
+- Partial Gregorian date support for calendar months at the start of the proleptic Gregorian epoch (Year 1).
+
+### Changed
+- Refactored `HebrewYear` and `HebrewDate` to use the new `HebrewMonth` class.
+- Improved Hebrew year string parsing (`str_to_year`) to support all Hebrew letters and more flexible formatting.
+- Consistent Google-style docstrings applied across the entire project for better documentation.
+- Updated `README.md` with better examples and a clearer Quick Start guide.
+
+### Fixed
+- Off-by-one error in Hebrew to Gregorian conversion.
+- Epoch alignment in `HebrewDate.genesis` to correctly match Rosh Hashanah postponements.
+- Holiday mapping for Adar in leap years (Adar I/II now correctly identify Purim/fasts).
+- Hanukkah length calculation in years where Kislev has 29 days.
+
 ## [2.1.0] - 05-08-2025
 
 ### Added

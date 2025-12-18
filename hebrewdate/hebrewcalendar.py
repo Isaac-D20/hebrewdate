@@ -8,29 +8,29 @@ import sys
 from itertools import repeat
 from .hebrewyear import HebrewYear
 from calendar import Calendar, HTMLCalendar
-from .hebrewdate import HebrewDate, _validate_month, WEEKDAYS, HEBREW_DAYS, G_BOUNDARY
+from .hebrewdate import HebrewDate, WEEKDAYS, HEBREW_DAYS
+from .hebrewmonth import HebrewMonth
 
 
 class HebrewCalendar(Calendar):
-    """
-    A calendar class for working with Hebrew dates.
-    
-    This class extends the standard Calendar class to provide Hebrew calendar functionality,
-    including methods for iterating over month days and converting between Hebrew and 
-    Gregorian dates.
-    
+    """A calendar class for working with Hebrew dates.
+
+    Extends the standard `calendar.Calendar` to provide Hebrew calendar functionality,
+    including methods for iterating over month days and converting between
+    Hebrew and Gregorian dates.
+
+    Args:
+        firstweekday (int): The first day of the week (0=Monday, 6=Sunday). Defaults to 1 (Sunday).
+        with_gregorian (bool): Whether to include Gregorian dates in the output. Defaults to True.
+        with_holidays (bool): Whether to include holidays in the output. Defaults to True.
+        with_festive_days (bool): Whether to include festive days. Defaults to False.
+        with_fasts (bool): Whether to include fasts. Defaults to False.
+
     Attributes:
-    -----------
-    **firstweekday**: ``int``
-        Specifies the first day of the week (1 = Sunday, default)
-    **with_gregorian**: ``bool``
-        Specifies whether to include Gregorian dates in the calendar
-    **with_holidays**: ``bool``
-        Specifies whether to include holidays in the calendar
-    **with_festive_days**: ``bool``
-        Specifies whether to include festive days in the calendar
-    **with_fasts**: ``bool``
-        Specifies whether to include fasts in the calendar
+        with_gregorian (bool): Whether to include Gregorian dates.
+        with_holidays (bool): Whether to include holidays.
+        with_festive_days (bool): Whether to include festive days.
+        with_fasts (bool): Whether to include fasts.
     """
 
     def __init__(self, firstweekday: int = 1, with_gregorian: bool = True, with_holidays: bool = True,
@@ -42,9 +42,16 @@ class HebrewCalendar(Calendar):
         self.with_fasts = with_fasts
 
     def itermonthdays(self, year, month):
-        """
-        Like itermonthdates(), but will yield day numbers. For days outside
-        the specified month the day number is 0.
+        """Yields day numbers for the specified month and year.
+
+        For days outside the specified month, yields 0.
+
+        Args:
+            year (int): Hebrew year.
+            month (int): Hebrew month index.
+
+        Yields:
+            int: Day number or 0.
         """
         date = HebrewDate(month=month, year=year)
         day1, n_days = date.weekday_numeric, date.year.days[month - 1]
@@ -55,59 +62,47 @@ class HebrewCalendar(Calendar):
         yield from repeat(0, days_after)
 
     def itermonthdays2(self, year, month):
-        """
-        Like itermonthdays(), but yields (day, weekday, gregorian_date, holiday) tuples.
+        """Yields day information tuples for the specified month and year.
+
+        Args:
+            year (int): Hebrew year.
+            month (int): Hebrew month index.
+
+        Yields:
+            tuple: (day, weekday, gregorian_day_str, holiday_str).
         """
         for i, d in enumerate(self.itermonthdays(year, month), self.firstweekday):
             date = holiday = ""
             if d != 0:
                 h_date = HebrewDate(d, month, year, self.with_festive_days, self.with_fasts)
-                if self.with_gregorian and (year > G_BOUNDARY[2] or (year == G_BOUNDARY[2] and month > G_BOUNDARY[1])):
-                    date = h_date.to_gregorian().strftime("%d")
+                if self.with_gregorian:
+                    g_date = h_date.to_gregorian()
+                    if g_date:
+                        date = g_date.strftime("%d")
                 if self.with_holidays:
                     holiday = h_date.holiday
             yield d, i % 7, date, holiday
 
 
 class HTMLHebrewCalendar(HebrewCalendar, HTMLCalendar):
-    """
-    HTML representation of the Hebrew calendar.
-    
-    This class combines HebrewCalendar and HTMLCalendar to provide HTML formatting
-    of Hebrew calendar data. It supports both Hebrew and Gregorian date display,
-    custom CSS styling, and various formatting options for days, weeks, months,
-    and complete years.
-    
-    The calendar is formatted right-to-left (RTL) to match the Hebrew calendar structure
-    and includes both Hebrew and optional Gregorian date representations.
+    """HTML representation of the Hebrew calendar.
+
+    Combines `HebrewCalendar` and `calendar.HTMLCalendar` to provide HTML
+    formatting. Supports RTL layout, custom CSS styling, and optional
+    Gregorian date display.
+
+    Args:
+        custom_data (dict, optional): Custom styling and content for specific days.
+            Keys are day numbers (1-31), values are dicts with 'classes' (list)
+            and 'content' (list).
+        firstweekday (int): The first day of the week. Defaults to 1 (Sunday).
+        with_gregorian (bool): Include Gregorian dates. Defaults to True.
+        with_holidays (bool): Include holidays. Defaults to True.
+        with_festive_days (bool): Include festive days. Defaults to False.
+        with_fasts (bool): Include fasts. Defaults to False.
 
     Attributes:
-    -----------
-    **custom_data**: ``dict``
-        A dictionary that allows adding custom styling and content to specific days
-        in the calendar. The dictionary should use day numbers as keys (1-31),
-        and each value should be a dictionary containing:
-        - 'classes': list of CSS class names to add to the day's cell
-        - 'content': list of HTML strings to append after the date content
-
-        Example:
-
-        >>> custom_data = {
-        ...    15: {
-        ...        'classes': ['highlight', 'special-day'],
-        ...        'content': ['<div class="event">Meeting</div>']
-        ...    }
-        ... }
-    **firstweekday**: ``int``
-        Specifies the first day of the week (1 = Sunday, default)
-    **with_gregorian**: ``bool``
-        Specifies whether to include Gregorian dates in the calendar
-    **with_holidays**: ``bool``
-        Specifies whether to include holidays in the calendar
-    **with_festive_days**: ``bool``
-        Specifies whether to include festive days in the calendar
-    **with_fasts**: ``bool``
-        Specifies whether to include fasts in the calendar
+        custom_data (dict): Dictionary of custom day data.
     """
     def __init__(self, custom_data: dict = None, firstweekday=1, with_gregorian=True, with_holidays=True,
                  with_festive_days=False, with_fasts=False):
@@ -116,24 +111,17 @@ class HTMLHebrewCalendar(HebrewCalendar, HTMLCalendar):
         self.custom_data = custom_data or {}
 
     def formatday(self, day, weekday, *args):
-        """
-        Return a day as a table cell with support for custom data and styling.
+        """Returns a day as a table cell (<td>).
 
-        Parameters:
-        -----------
-        **day**: ``int``
-            Day number (0 for days outside the month)
-        **weekday**: ``int``
-            Day of week (0-6)
-        **args**:
-            Additional content to add to the cell (e.g., Gregorian date, holiday)
+        Supports custom data and styling from `self.custom_data`.
 
-        The method checks self.custom_data for additional formatting:
+        Args:
+            day (int): Day number (0 for padding).
+            weekday (int): Day of week (0-6).
+            *args: Additional content (e.g., Gregorian date, holiday).
 
-        * If self.custom_data is present, it should be a dict with day numbers as keys
-        * Each value should be a dict containing:
-            - 'classes': list of additional CSS classes
-            - 'content': list of HTML content to append after the date
+        Returns:
+            str: HTML table cell.
         """
         if day == 0:
             return f'<td class="{self.cssclass_noday}">&nbsp;</td>'
@@ -158,45 +146,86 @@ class HTMLHebrewCalendar(HebrewCalendar, HTMLCalendar):
         return f'<td class="{classes_str}" data-date="{day}">{content_str}</td>'
 
     def formatweek(self, week):
-        """
-        Return a complete week as a table row.
+        """Returns a complete week as a table row (<tr>).
+
+        Args:
+            week (list): List of day information tuples.
+
+        Returns:
+            str: HTML table row.
         """
         s = ''.join(self.formatday(d, wd, g, h) for (d, wd, g, h) in week)
         return f'<tr>{s}</tr>'
 
     def formatweekday(self, day):
-        """
-        Return a weekday name as a table header.
+        """Returns a weekday name as a table header (<th>).
+
+        Args:
+            day (int): Weekday index.
+
+        Returns:
+            str: HTML table header.
         """
         return f'<th class="weekday {self.cssclasses_weekday_head[day]}">{WEEKDAYS[day]}</th>'
 
     def formatmonthname(self, year, month, with_year=True):
-        """
-        Return a month name as a table row.
+        """Returns a month name header row.
+
+        Args:
+            year (int): Hebrew year.
+            month (int): Hebrew month index.
+            with_year (bool): Whether to include the year in the header.
+
+        Returns:
+            str: HTML table header section.
         """
         h_year = HebrewYear(year)
-        _validate_month(month, h_year)
-        if self.with_gregorian and (year > G_BOUNDARY[2] or (year == G_BOUNDARY[2] and month > G_BOUNDARY[1])):
-            start = HebrewDate(month=month, year=year)
-            end = (start + (h_year.days[month - 1] - 1)).to_gregorian().strftime("%B")
-            start = start.to_gregorian()
-            g_year = start.year
-            start = start.strftime('%B')
-            gm = f'{start}-{end}' if start != end else start
+        HebrewMonth(h_year, month)
+        
+        g_info = None
+        if self.with_gregorian:
+            start_date = HebrewDate(day=1, month=month, year=year)
+            end_date = start_date + (h_year.days[month - 1] - 1)
+            g_start = start_date.to_gregorian()
+            g_end = end_date.to_gregorian()
+            
+            if g_start or g_end:
+                # If only one end is valid, use what we have
+                # (e.g. month starts before Gregorian epoch but ends after it)
+                g_year = (g_end or g_start).year
+                s_name = g_start.strftime('%B') if g_start else ""
+                e_name = g_end.strftime('%B') if g_end else ""
+                
+                if s_name and e_name:
+                    gm = f'{s_name}-{e_name}' if s_name != e_name else s_name
+                else:
+                    gm = s_name or e_name
+                g_info = (gm, g_year)
+
+        month_name = h_year.months[month - 1]
+        if g_info:
+            gm, g_year = g_info
             if with_year:
-                s = f'{h_year.months[month - 1]} {h_year}\n{gm} {g_year}'
+                s = f'{month_name} {h_year}\n{gm} {g_year}'
             else:
-                s = f'{h_year.months[month - 1]}\n{gm}'
+                s = f'{month_name}\n{gm}'
         else:
             if with_year:
-                s = f'{h_year.months[month - 1]} {h_year}'
+                s = f'{month_name} {h_year}'
             else:
-                s = h_year.months[month - 1]
+                s = str(month_name)
         return f'<thead><tr><th colspan="7" class="{self.cssclass_month_head}">{s}</th></tr></thead>'
 
     def formatmonth(self, year, month, with_year=True):
-        """
-        Return a formatted month as a table.
+        """Returns a formatted month as an HTML table.
+
+        Args:
+            year (int): Hebrew year.
+            month (int): Hebrew month index.
+            with_year (bool): Whether to include the year in the header.
+
+        Returns:
+            str: HTML table.
         """
         v = []
         a = v.append
@@ -214,8 +243,14 @@ class HTMLHebrewCalendar(HebrewCalendar, HTMLCalendar):
         return ''.join(v)
 
     def formatyear(self, year, width=3):
-        """
-        Return a formatted year as a table of tables.
+        """Returns a formatted year as a table of tables.
+
+        Args:
+            year (int): Hebrew year.
+            width (int): Number of months per row.
+
+        Returns:
+            str: HTML table.
         """
         v = []
         a = v.append
@@ -237,8 +272,16 @@ class HTMLHebrewCalendar(HebrewCalendar, HTMLCalendar):
         return ''.join(v)
 
     def formatyearpage(self, year, width=3, css="calendar.css", encoding=None):
-        """
-        Return a formatted year as a complete HTML page.
+        """Returns a formatted year as a complete HTML page.
+
+        Args:
+            year (int): Hebrew year.
+            width (int): Number of months per row.
+            css (str): Path to CSS file.
+            encoding (str, optional): Output encoding.
+
+        Returns:
+            bytes: Encoded HTML page content.
         """
         if encoding is None:
             encoding = sys.getdefaultencoding()

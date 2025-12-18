@@ -9,23 +9,25 @@ operations such as year arithmetic and comparisons.
 #  Copyright (c) 2025 Isaac Dovolsky
 
 from __future__ import annotations
+from functools import lru_cache
 import re
+from .hebrewmonth import HebrewMonth, STANDARD_MONTHS, LEAP_MONTHS
 
 FIRST_NEW_MOON = 57444  # First new moon time in parts
 NEW_MOON_INTERVAL = 765433  # Interval between new moons in parts
 INVALID_FIRST_DAYS = {1, 4, 6}  # Invalid first days of the Hebrew year
-LEAP_YEARS = {0, 3, 6, 8, 11, 14, 17}  # 0 instead of 19 due to modular calculation
 
-# Standard and Leap Year Month Lengths
-STANDARD_MONTHS = {
-    "תשרי": 30, "חשוון": 29, "כסלו": 30, "טבת": 29, "שבט": 30, "אדר": 29,
-    "ניסן": 30, "אייר": 29, "סיוון": 30, "תמוז": 29, "אב": 30, "אלול": 29
-}
-LEAP_MONTHS = {
-    "תשרי": 30, "חשוון": 29, "כסלו": 30, "טבת": 29, "שבט": 30, "אדר א": 30,
-    "אדר ב": 29, "ניסן": 30, "אייר": 29, "סיוון": 30, "תמוז": 29, "אב": 30,
-    "אלול": 29
-}
+
+@lru_cache(maxsize=128)
+def _get_year_data(year: int):
+    """Calculates and caches basic year data."""
+    is_leap = HebrewYear.is_leap_year(year)
+    months_dict = LEAP_MONTHS if is_leap else STANDARD_MONTHS
+    month_names = tuple(months_dict.keys())
+    month_days = tuple(months_dict.values())
+    month_count = 13 if is_leap else 12
+    return is_leap, month_names, month_days, month_count
+
 
 def _validate_year(year: int | str) -> int:
     if isinstance(year, str):
@@ -34,38 +36,38 @@ def _validate_year(year: int | str) -> int:
         raise ValueError(f"bad year value {year}")
     return year
 
+
 class HebrewYear:
-    """
-    Represents a Hebrew year, handling leap years and calendar calculations.
+    """Represents a Hebrew year.
+
+    Handles leap years, calendar calculations, and conversions between numeric
+    and traditional Hebrew string representations.
+
+    Args:
+        year (int | str): Numeric value of the year (1-9999) or Hebrew string.
 
     Attributes:
-    -----------
-    **year**: ``int``
-        Numeric value of the Hebrew year.
-    **year_str**: ``str``
-        Traditional string representation of the Hebrew year.
-    **is_leap**: ``bool``
-        Whether the year is a leap year.
-    **months**: ``list[str]``
-        A list of month names for the year, adjusted for leap years.
-    **days**: ``list[int]``
-        Number of days in each month in the year.
-    **month_count**: ``int``
-        Number of months in the year (12 or 13 for leap years).
-    **first_weekday**: ``int``
-        Numeric representation of the year's first weekday (0-6, where 0 is שבת for calculation purposes).
+        year (int): Numeric value of the Hebrew year.
+        year_str (str): Traditional Hebrew string representation.
+        is_leap (bool): Whether the year is a leap year.
+        months (list[HebrewMonth]): List of HebrewMonth objects for the year.
+        days (list[int]): Number of days in each month.
+        month_count (int): Total number of months in the year (12 or 13).
+        first_weekday (int): The numeric weekday of Rosh Hashanah (0-6, Sat-Fri).
     """
 
     def __init__(self, year: int | str):
         self.year = _validate_year(year)
         self.year_str = self.year_to_str(self.year)
-        self.is_leap = self.is_leap_year(self.year)
-        index = LEAP_MONTHS if self.is_leap else STANDARD_MONTHS
-        self.months = list(index.keys())
-        self.days = list(index.values())
-        self.month_count = 13 if self.is_leap else 12
+        self.is_leap, self._month_names, self._month_days, self.month_count = _get_year_data(self.year)
         self.first_weekday = self._first_weekday()
+        self.days = list(self._month_days)
         self._calculate_days()
+        self._total_days = sum(self.days)
+        self.cumulative_days = [0]
+        for d in self.days:
+            self.cumulative_days.append(self.cumulative_days[-1] + d)
+        self.months = [HebrewMonth(self, i + 1) for i in range(self.month_count)]
 
     def __repr__(self) -> str:
         return f"Year({self.year_str})"
@@ -111,19 +113,44 @@ class HebrewYear:
 
     @staticmethod
     def is_leap_year(year: int) -> bool:
-        return year % 19 in LEAP_YEARS
+        """Determines if a given year is a leap year.
+
+        Args:
+            year (int): The Hebrew year to check.
+
+        Returns:
+            bool: True if it's a leap year, False otherwise.
+        """
+        return (1 << (year % 19)) & 0x24949 != 0  # Bitmask for {0, 3, 6, 8, 11, 14, 17}
 
     def total_days(self) -> int:
-        return sum(self.days)
+        """Returns the total number of days in the year.
+
+        Returns:
+            int: Total day count.
+        """
+        try:
+            return self._total_days
+        except AttributeError:
+            return sum(self.days)
 
     def month_dict(self) -> dict[str, int]:
-        return dict(zip(self.months, self.days))
+        """Returns a dictionary mapping month names to their lengths.
+
+        Returns:
+            dict[str, int]: Month names and day counts.
+        """
+        return dict(zip(self._month_names, self.days))
 
     def new_moons(self) -> dict[str, str]:
-        """ Return a dictionary of new moons for each month. """
+        """Calculates the schedule of new moons for each month.
+
+        Returns:
+            dict[str, str]: Month names and formatted Molad times (d:h:p).
+        """
         first_new_moon = self.first_new_moon() % 181440  # 7 * 24 * 1080 = 181440
         return {
-            self.months[month]: (
+            self._month_names[month]: (
                 f'{(month * NEW_MOON_INTERVAL + first_new_moon) // 1080 // 24 % 7}:'
                 f'{(month * NEW_MOON_INTERVAL + first_new_moon) // 1080 % 24}:'
                 f'{(month * NEW_MOON_INTERVAL + first_new_moon) % 1080}'
@@ -132,10 +159,20 @@ class HebrewYear:
         }
 
     def first_new_moon(self, year: int = None) -> int:
-        """ Returns the time of the year's first new moon (in parts) """
+        """Returns the time of the year's first new moon in parts since epoch.
+
+        Args:
+            year (int, optional): The year to calculate for. Defaults to current year.
+
+        Returns:
+            int: Total parts.
+        """
         year = (self.year if year is None else year) - 1
         # Number of leap years up to the current year
-        leap_years = (year // 19) * 7 + sum(1 for j in LEAP_YEARS if j <= year % 19 and j != 0)
+        # Leap years are years 3, 6, 8, 11, 14, 17, 19 in the 19-year cycle
+        # We use a bitmask or set to count leap years in the current cycle
+        cycle, year_in_cycle = divmod(year, 19)
+        leap_years = cycle * 7 + sum(1 for j in (3, 6, 8, 11, 14, 17, 19) if j <= year_in_cycle)
         # Total new moons up to the first new moon of the current year
         return (year * 12 + leap_years) * NEW_MOON_INTERVAL + FIRST_NEW_MOON
 
@@ -214,38 +251,35 @@ class HebrewYear:
 
         **s**: ``str``
             The Hebrew year string to convert.
-
-        Notes
-        -----
-        The valid formats for the year string are:
-
-        - A geresh after the thousands part, e.g. ה'תשפה
-        - A space after the thousands part, e.g. ה תשפה
-        - Quotation marks before the units part, e.g. ה'תשפ"ה or ה תשפ"ה
         """
-        pattern = re.compile(
-            r"^(?P<th>[\u05d0-\u05d8][' ])?(?P<h>\u05ea{0,2}[\u05e7-\u05e9])?(?P<t>[\u05d8-\u05e6]?\"?[\u05d0-\u05d8]?)$"
-        )
-        if not (match := pattern.match(s)):
-            raise ValueError(f"bad year value '{s}'")
+        # Hebrew letter values
+        values = {
+            'א': 1, 'ב': 2, 'ג': 3, 'ד': 4, 'ה': 5, 'ו': 6, 'ז': 7, 'ח': 8, 'ט': 9,
+            'י': 10, 'כ': 20, 'ל': 30, 'מ': 40, 'נ': 50, 'ס': 60, 'ע': 70, 'פ': 80, 'צ': 90,
+            'ק': 100, 'ר': 200, 'ש': 300, 'ת': 400
+        }
+        
+        # Clean the string
+        s_clean = s.replace('"', '').replace('\'', ' ').strip()
+        parts = s_clean.split(' ')
+        
         year = 0
-        if match.group('th'):
-            year += 1000 * (ord(match.group('th').replace("'", '').strip()) - 1487)
-        if match.group('h'):
-            year += sum(100 * (ord(char) - 1510) for char in match.group('h'))
-        if match.group('t'):
-            t = match.group('t').replace('"', '')
-            if t == 'טו':
-                year += 15
-            elif t == 'טז':
-                year += 16
-            elif t[0] == 'ט':
-                raise ValueError(f"bad year value '{s}'")
-            elif ord(t[0]) > 1496:
-                c = (ord(t[0]) - 1496) - (ord(t[0]) - 1496) // 3
-                year += 10 * (c - 1 if c in {6, 10} else c)
-                if len(t) > 1:
-                    year += ord(t[1]) - 1487
-            else:
-                year += ord(t[0]) - 1487
+        if len(parts) > 1:
+            # Thousands part
+            year += values.get(parts[0], 0) * 1000
+            s_rest = parts[1]
+        elif '\'' in s and s.index('\'') < 3 and len(s) > 1:
+            # Thousands part with geresh but no space
+            geresh_idx = s.index('\'')
+            year += values.get(s[geresh_idx-1], 0) * 1000
+            s_rest = s[geresh_idx+1:].replace('"', '')
+        else:
+            s_rest = parts[0]
+            # Handle cases like "א'" which mean 1000
+            if s.endswith("'") and len(s) <= 2:
+                 return values.get(s[0], 0) * 1000
+
+        for char in s_rest:
+            year += values.get(char, 0)
+            
         return year

@@ -3,5 +3,6 @@
 from .hebrewyear import HebrewYear
 from .hebrewdate import HebrewDate
 from .hebrewcalendar import HebrewCalendar, HTMLHebrewCalendar
+from .hebrewmonth import HebrewMonth
 
-__all__ = ['HebrewYear', 'HebrewDate', 'HebrewCalendar', 'HTMLHebrewCalendar']
+__all__ = ['HebrewYear', 'HebrewDate', 'HebrewCalendar', 'HTMLHebrewCalendar', 'HebrewMonth']

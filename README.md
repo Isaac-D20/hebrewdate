@@ -1,70 +1,76 @@
 # hebrewdate
 A comprehensive Python library for working with the Hebrew calendar, providing date conversions, calendar generation, and holiday information.
 
-It offers four main classes:
-
-- ``HebrewDate``: Represents a specific date in the Hebrew calendar, with support for conversions
-  to/from Gregorian dates, manipulation of dates (e.g., adding or subtracting days, months, or years),
-  and various date-related attributes such as day, month, year, and weekday in the Hebrew calendar.
-- ``HebrewYear``: Represents a Hebrew year, managing leap year calculations, month lengths, and
-  determining the first weekday of the year.
-- ``HebrewCalendar``: Extends Python's built-in `Calendar` class to provide Hebrew calendar functionality,
-  including methods for iterating over month days and converting between Hebrew and Gregorian dates.
-- ``HTMLHebrewCalendar``: Provides HTML formatting of Hebrew calendar data with support for both
-  Hebrew and Gregorian date display, selection layers for holidays, festive days, and fasts, and custom CSS styling.
-
-#### Key Features:
-- Conversion between Hebrew and Gregorian dates.
-- Support for Hebrew holidays, festive days, and fasts.
-- Computation of weekdays, month lengths, and leap years for Hebrew dates.
-- Operations for date arithmetic, such as adding and subtracting days, months, and years.
-- Methods for getting today's Hebrew date or constructing a Hebrew date from a Gregorian date.
-- Calendar iteration and formatting for Hebrew dates in HTML format.
-- Generate HTML calendars with customizable styling.
-- Support for generating complete calendar pages for months and years.
-
-#### Limitations:
-- Supported Python versions: 3.9 and later
-- Date conversions before 1752 CE may be inaccurate due to historical and calendar system variations.
-- Dates far in the past may not be convertible to Gregorian dates
+## Key Features
+- **Conversion**: Seamlessly convert between Hebrew and Gregorian dates.
+- **Holidays**: Built-in support for major holidays, festive days (Chol HaMoed, Hanukkah), and fasts.
+- **Arithmetic**: Easily add or subtract days, months, or years from Hebrew dates.
+- **Calendar**: Generate text or HTML calendars for any Hebrew month or year.
+- **Leap Years**: Full handling of the 19-year Hebrew calendar cycle.
+- **Traditional Formatting**: Support for traditional Hebrew year strings (e.g., ה'תשפ"ה).
 
 ## Installation
-```
+```bash
 pip install hebrewdate
-``` 
-
-## Usage
 ```
->>> from hebrewdate import HebrewDate, HTMLHebrewCalendar
+
+## Quick Start
+
+### Basic Date Operations
+```python
+from hebrewdate import HebrewDate
+
 # Get today's Hebrew date
->>> today = HebrewDate.today()
->>> print(today)
-e.g. יום ראשון א ניסן ה'תשפ"ה
-# Convert to Gregorian
->>> print(today.to_gregorian())
-e.g. 2025-03-30
+today = HebrewDate.today()
+print(today)  # יום חמישי יט כסלו ה'תשפ"ה
 
-# Convert from Gregorian to Hebrew
->>> h = HebrewDate.from_gregorian(13, 4, 2025)
-# Check holiday
->>> if h.is_holiday:
-...     print(pesach.holiday)
-...
-יו"ט ראשון של פסח
+# Create a specific Hebrew date
+date = HebrewDate(15, "ניסן", 5785)
+print(date.to_gregorian())  # 2025-04-13
 
-# Generate an HTML calendar
-cal = HTMLHebrewCalendar(with_gregorian=False)
-html = cal.formatmonth(5785, 1) # תשרי ה'תשפ"ה
+# Date arithmetic
+next_week = date + 7
+print(next_week)  # יום ראשון כב ניסן ה'תשפ"ה
+
+# Check for holidays
+if date.is_holiday:
+    print(f"Today is {date.holiday}")  # Today is יו"ט ראשון של פסח
 ```
 
-### Contribution
+### Working with Years and Months
+```python
+from hebrewdate import HebrewYear, HebrewMonth
 
-Contributions are welcome! Feel free to submit a Pull Request.
+# Explore a Hebrew year
+year = HebrewYear(5784)
+print(year.is_leap)  # True
+print(year.month_count)  # 13
+
+# Explore a Hebrew month
+month = HebrewMonth(year, "אדר א")
+print(month.length)  # 30
+```
+
+### Generating HTML Calendars
+```python
+from hebrewdate import HTMLHebrewCalendar
+
+# Create an HTML calendar for Tishrei 5785
+cal = HTMLHebrewCalendar(with_gregorian=True, with_holidays=True)
+html = cal.formatmonth(5785, 1)
+
+# Save to file
+with open("calendar.html", "w", encoding="utf-8") as f:
+    f.write(html)
+```
+
+## Limitations
+- Supported Python versions: 3.9 and later.
+- Date conversions before 1752 CE may be slightly inaccurate due to historical calendar variations.
+- Extremely ancient dates might not be convertible to the Gregorian system.
 
 ## License
-
-This project is licensed under the MIT License. See the LICENSE file for details.
+This project is licensed under the MIT License.
 
 ## Author
-
 Isaac Dovolsky
