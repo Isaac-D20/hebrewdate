@@ -38,7 +38,7 @@ class HebrewMonth:
     def __init__(self, year: HebrewYear, month: int | str):
         self.year = year
         
-        month_names = self.year._month_names
+        month_names = self.year.month_names
         if isinstance(month, int):
             if month < 1 or month > self.year.month_count:
                 raise ValueError(f"bad month value '{month}'")

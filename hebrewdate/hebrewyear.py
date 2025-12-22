@@ -59,9 +59,9 @@ class HebrewYear:
     def __init__(self, year: int | str):
         self.year = _validate_year(year)
         self.year_str = self.year_to_str(self.year)
-        self.is_leap, self._month_names, self._month_days, self.month_count = _get_year_data(self.year)
+        self.is_leap, self.month_names, self.month_days, self.month_count = _get_year_data(self.year)
         self.first_weekday = self._first_weekday()
-        self.days = list(self._month_days)
+        self.days = list(self.month_days)
         self._calculate_days()
         self._total_days = sum(self.days)
         self.cumulative_days = [0]
@@ -140,7 +140,7 @@ class HebrewYear:
         Returns:
             dict[str, int]: Month names and day counts.
         """
-        return dict(zip(self._month_names, self.days))
+        return dict(zip(self.month_names, self.days))
 
     def new_moons(self) -> dict[str, str]:
         """Calculates the schedule of new moons for each month.
@@ -150,7 +150,7 @@ class HebrewYear:
         """
         first_new_moon = self.first_new_moon() % 181440  # 7 * 24 * 1080 = 181440
         return {
-            self._month_names[month]: (
+            self.month_names[month]: (
                 f'{(month * NEW_MOON_INTERVAL + first_new_moon) // 1080 // 24 % 7}:'
                 f'{(month * NEW_MOON_INTERVAL + first_new_moon) // 1080 % 24}:'
                 f'{(month * NEW_MOON_INTERVAL + first_new_moon) % 1080}'

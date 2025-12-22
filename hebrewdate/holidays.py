@@ -80,16 +80,12 @@ def get_holiday(date, include_festive_days: bool = False, include_fasts: bool = 
             If not a holiday, returns (False, '').
     """
     # Support for Adar/Adar II mapping
-    month_name = date.month
-    if month_name in ('אדר א', 'אדר ב'):
-        month_name = 'אדר'
-
     day_numeric = date.day_numeric
     weekday_numeric = date.weekday_numeric
 
     # Check main holidays
-    if month_name in HOLIDAYS:
-        for holiday, day in HOLIDAYS[month_name].items():
+    if date.month in HOLIDAYS:
+        for holiday, day in HOLIDAYS[date.month].items():
             if isinstance(day, tuple):
                 if day_numeric in day:
                     return True, holiday
@@ -97,18 +93,18 @@ def get_holiday(date, include_festive_days: bool = False, include_fasts: bool = 
                 return True, holiday
 
     if include_festive_days:
-        if month_name in FESTIVE_DAYS:
+        if date.month in FESTIVE_DAYS:
             # Check for Hanukkah length which depends on Kislev length
-            if month_name == 'טבת' and day_numeric == 3:
-                if date.year.days[2] == 29:
+            if date.month == 'טבת' and day_numeric == 3:
+                if date.year.days[2] == 30:
                     return False, ''
             
-            if month_name == 'אדר' and day_numeric == 16:
+            if date.month in ('אדר', 'אדר ב') and day_numeric == 16:
                 # Purim Meshulash: only if 15 Adar is Shabat (so 16 Adar is Sunday)
                 if weekday_numeric != 1:
                     return False, ''
             
-            for festive, day in FESTIVE_DAYS[month_name].items():
+            for festive, day in FESTIVE_DAYS[date.month].items():
                 if isinstance(day, (tuple, set)):
                     if day_numeric in day:
                         return True, festive
@@ -116,26 +112,21 @@ def get_holiday(date, include_festive_days: bool = False, include_fasts: bool = 
                     return True, festive
 
     if include_fasts:
-        if month_name in FASTS:
-            # Fast postponement logic
-            # Tsom Gedaliah (3 Tishrei), 17 Tammuz, 9 Av
-            # If they fall on Shabbat (7), they are moved to Sunday (1)
-            # Ta'anit Esther (13 Adar) is moved to Thursday (5) if it falls on Shabbat (7)
-            
+        if date.month in FASTS:
             actual_check_day = day_numeric
-            if month_name == 'אדר':
+            if date.month in ('אדר', 'אדר ב'):
                 if day_numeric == 13 and weekday_numeric == 7:
                     return False, '' # Fast moved to Thursday
                 if day_numeric == 11 and weekday_numeric == 5:
                     actual_check_day = 13
-            elif month_name in ('תשרי', 'תמוז', 'אב'):
-                base_day = list(FASTS[month_name].values())[0]
+            elif date.month in ('תשרי', 'תמוז', 'אב'):
+                base_day = list(FASTS[date.month].values())[0]
                 if day_numeric == base_day and weekday_numeric == 7:
                     return False, '' # Fast moved to Sunday
                 if day_numeric == base_day + 1 and weekday_numeric == 1:
                     actual_check_day = base_day
             
-            for fast, day in FASTS[month_name].items():
+            for fast, day in FASTS[date.month].items():
                 if actual_check_day == day:
                     return True, fast
 

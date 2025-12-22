@@ -321,8 +321,8 @@ class TestHebrewDate(TestCase):
             (22, 1, 5785, 'שמחת תורה'),
             (25, 3, 5785, 'חנוכה'),
             (2, 4, 5785, 'חנוכה'),
-            (14, 6, 5784, 'פורים'),
-            (15, 6, 5784, 'שושן פורים'),
+            (14, 7, 5784, 'פורים'),
+            (15, 7, 5784, 'שושן פורים'),
             (15, 7, 5785, 'יו"ט ראשון של פסח'),
             (21, 7, 5785, 'שביעי של פסח'),
             (6, 9, 5785, 'שבועות'),
@@ -336,7 +336,7 @@ class TestHebrewDate(TestCase):
         tests = [
             (4, 1, 5785, 'צום גדליה'), # 3 Tishrei is Shabbat, moved to 4
             (10, 4, 5785, 'צום עשרה בטבת'),
-            (13, 6, 5784, 'תענית אסתר'),
+            (11, 7, 5784, 'תענית אסתר'),
             (17, 10, 5785, 'צום י"ז בתמוז'), # Sunday
             (9, 11, 5785, 'צום תשעה באב'), # Sunday
         ]
@@ -358,15 +358,13 @@ class TestHebrewDate(TestCase):
         # Test Hanukkah in a year where Kislev has 29 days (e.g. 5784)
         year_29 = HebrewYear(5784)
         self.assertEqual(year_29.days[2], 29)
-        # Hanukkah: 25 Kislev to 2 Tevet (8 days)
+        # Hanukkah: 25 Kislev to 3 Tevet (8 days)
         last_day_kislev = HebrewDate(29, 3, 5784, include_festive_days=True)
         self.assertEqual(last_day_kislev.holiday, "חנוכה")
-        first_day_tevet = HebrewDate(1, 4, 5784, include_festive_days=True)
-        self.assertEqual(first_day_tevet.holiday, "חנוכה")
-        second_day_tevet = HebrewDate(2, 4, 5784, include_festive_days=True)
-        self.assertEqual(second_day_tevet.holiday, "חנוכה")
         third_day_tevet = HebrewDate(3, 4, 5784, include_festive_days=True)
-        self.assertEqual(third_day_tevet.holiday, "") # Not in 5784 (Kislev 29)
+        self.assertEqual(third_day_tevet.holiday, "חנוכה")
+        fourth_day_tevet = HebrewDate(4, 4, 5784, include_festive_days=True)
+        self.assertEqual(fourth_day_tevet.holiday, "")
 
         # Test Hanukkah in a year where Kislev has 30 days (e.g. 5785)
         year_30 = HebrewYear(5785)
@@ -375,9 +373,7 @@ class TestHebrewDate(TestCase):
         thirtieth_kislev = HebrewDate(30, 3, 5785, include_festive_days=True)
         self.assertEqual(thirtieth_kislev.holiday, "חנוכה")
         third_day_tevet_30 = HebrewDate(3, 4, 5785, include_festive_days=True)
-        self.assertEqual(third_day_tevet_30.holiday, "חנוכה")
-        fourth_day_tevet_30 = HebrewDate(4, 4, 5785, include_festive_days=True)
-        self.assertEqual(fourth_day_tevet_30.holiday, "")
+        self.assertEqual(third_day_tevet_30.holiday, "")
 
     def test_delta_large_values(self):
         date = HebrewDate(1, 1, 5785)
